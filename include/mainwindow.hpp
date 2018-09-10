@@ -4,12 +4,11 @@
 #include <QAction>
 #include <QImage>
 #include <QLabel>
+#include <QPixMap>
 #include <QScrollArea>
 #include <QFileDialog>
-
-namespace Ui {
-  class MainWindow;
-}
+#include <QHBoxLayout>
+#include <QVBoxLayout>
 
 class MainWindow : public QMainWindow
 {
@@ -31,19 +30,39 @@ private:
   bool loadFile(const QString& file_name);
   bool saveFile(const QString& file_name);
   void setImage(const QImage& new_image);
-  void scaleImage(double factor);
-  void adjustScrollBar(QScrollBar* scroll_bar, double factor);
   void initializeImageFileDialog(QFileDialog& dialog, QFileDialog::AcceptMode accept_mode);
+  void mirrorHorizontally();
+  void mirrorVertically();
+  void convertToMonochrome();
+  void quantizeImage();
 
-  Ui::MainWindow* ui;
+  void resizeEvent(QResizeEvent* event);
 
-  bool first_dialog_;
-  QImage image_;
+  bool is_first_dialog_;
+  bool is_image_modified_;
+  bool is_image_monochrome_;
+
+  QImage original_image_;
+  QImage modified_image_;
+  QPixmap pixmap_left_;
+  QPixmap pixmap_right_;
+
+  QLabel* image_title_left_;
+  QLabel* image_title_right_;
   QLabel* image_label_left_;
   QLabel* image_label_right_;
   QScrollArea* scroll_area_left_;
   QScrollArea* scroll_area_right_;
 
+  QWidget* central_widget_;
+  QHBoxLayout* horizontal_layout_;
+  QVBoxLayout* vertical_layout_left_;
+  QVBoxLayout* vertical_layout_right_;
+
   QAction* save_as_action_;
   QAction* fit_to_window_action_;
+  QAction* mirror_horizontally_action_;
+  QAction* mirror_vertically_action_;
+  QAction* convert_to_monochrome_action_;
+  QAction* quantize_image_action_;
 };
