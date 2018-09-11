@@ -7,15 +7,17 @@
 #include <QMenu>
 #include <QAction>
 #include <QFileDialog>
+#include <QInputDialog>
 #include <QStandardPaths>
 #include <QImageWriter>
 #include <QScreen>
 
+#include <cmath>
+
 MainWindow::MainWindow(QWidget *parent):
   QMainWindow(parent),
   is_first_dialog_(false),
-  is_image_modified_(false),
-  is_image_monochrome_(false)
+  horizontal_layout_(&central_widget_)
 {
   // Left image
   image_title_left_ = new QLabel;
@@ -48,45 +50,20 @@ MainWindow::MainWindow(QWidget *parent):
   scroll_area_right_->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
 
   // Show images side by side with titles on top
-  central_widget_ = new QWidget;
-  horizontal_layout_ = new QHBoxLayout(central_widget_);
-  vertical_layout_left_ = new QVBoxLayout;
-  vertical_layout_right_ = new QVBoxLayout;
+  vertical_layout_left_.addWidget(image_title_left_);
+  vertical_layout_left_.addWidget(scroll_area_left_);
 
-  vertical_layout_left_->addWidget(image_title_left_);
-  vertical_layout_left_->addWidget(scroll_area_left_);
+  vertical_layout_right_.addWidget(image_title_right_);
+  vertical_layout_right_.addWidget(scroll_area_right_);
 
-  vertical_layout_right_->addWidget(image_title_right_);
-  vertical_layout_right_->addWidget(scroll_area_right_);
+  horizontal_layout_.addLayout(&vertical_layout_left_);
+  horizontal_layout_.addLayout(&vertical_layout_right_);
 
-  horizontal_layout_->addLayout(vertical_layout_left_);
-  horizontal_layout_->addLayout(vertical_layout_right_);
-
-  setCentralWidget(central_widget_);
+  setCentralWidget(&central_widget_);
 
   createActions();
 
   resize(QGuiApplication::primaryScreen()->availableSize() * 3 / 5);
-}
-
-MainWindow::~MainWindow()
-{
-  delete image_title_left_;
-  delete image_title_right_;
-  delete image_label_left_;
-  delete image_label_right_;
-  delete scroll_area_left_;
-  delete scroll_area_right_;
-  delete central_widget_;
-  delete horizontal_layout_;
-  delete vertical_layout_left_;
-  delete vertical_layout_right_;
-  delete save_as_action_;
-  delete fit_to_window_action_;
-  delete mirror_horizontally_action_;
-  delete mirror_vertically_action_;
-  delete convert_to_monochrome_action_;
-  delete quantize_image_action_;
 }
 
 void MainWindow::createActions()
@@ -133,12 +110,12 @@ void MainWindow::createActions()
 
 void MainWindow::updateActions()
 {
-  save_as_action_->setEnabled(!original_image_.isNull());
-  fit_to_window_action_->setEnabled(!original_image_.isNull());
-  mirror_horizontally_action_->setEnabled(!original_image_.isNull());
-  mirror_vertically_action_->setEnabled(!original_image_.isNull());
-  convert_to_monochrome_action_->setEnabled(!original_image_.isNull());
-  quantize_image_action_->setEnabled(is_image_monochrome_);
+  save_as_action_->setEnabled(!image_.isNull());
+  fit_to_window_action_->setEnabled(!image_.isNull());
+  mirror_horizontally_action_->setEnabled(!image_.isNull());
+  mirror_vertically_action_->setEnabled(!image_.isNull());
+  convert_to_monochrome_action_->setEnabled(!image_.isNull());
+  quantize_image_action_->setEnabled(!image_.isNull() && image_.isGrayscale());
 }
 
 void MainWindow::initializeImageFileDialog(QFileDialog& dialog, QFileDialog::AcceptMode accept_mode)
@@ -166,7 +143,6 @@ void MainWindow::open()
   QFileDialog dialog(this, tr("Open File"));
   initializeImageFileDialog(dialog, QFileDialog::AcceptOpen);
 
-  // TODO(jfguimaraes) Review this loop
   while (dialog.exec() == QDialog::Accepted && !loadFile(dialog.selectedFiles().first()));
 }
 
@@ -186,29 +162,25 @@ bool MainWindow::loadFile(const QString& file_name)
   setImage(new_image);
   setWindowFilePath(file_name);
 
-  const QString message = tr("Opened \"%1\", %2x%3, Depth: %4")
-      .arg(QDir::toNativeSeparators(file_name)).arg(original_image_.width()).arg(original_image_.height()).arg(original_image_.depth());
+  const QString message = tr("Opened \"%1\", %2x%3")
+      .arg(QDir::toNativeSeparators(file_name)).arg(image_.width()).arg(image_.height());
   statusBar()->showMessage(message);
   return true;
 }
 
 void MainWindow::setImage(const QImage& new_image)
 {
-  original_image_ = new_image;
-  pixmap_left_ = QPixmap::fromImage(original_image_);
+  image_ = new_image;
+  pixmap_left_ = QPixmap::fromImage(image_);
   image_label_left_->setPixmap(pixmap_left_);
 
-  updateActions();
-
-  if (!fit_to_window_action_->isChecked())
-    image_label_left_->adjustSize();
-
   // Clear right image
-  is_image_modified_ = false;
-  is_image_monochrome_ = false;
-  modified_image_ = QImage();
+  pixmap_right_ = QPixmap();
   image_label_right_->clear();
   image_label_right_->adjustSize();
+  updateActions();
+
+  fitToWindow();
 }
 
 void MainWindow::saveAs()
@@ -216,21 +188,14 @@ void MainWindow::saveAs()
   QFileDialog dialog(this, tr("Save File As"));
   initializeImageFileDialog(dialog, QFileDialog::AcceptSave);
 
-  // TODO(jfguimaraes) Review this loop
   while (dialog.exec() == QDialog::Accepted && !saveFile(dialog.selectedFiles().first()));
 }
 
 bool MainWindow::saveFile(const QString& file_name)
 {
   QImageWriter writer(file_name);
-  bool write_success;
 
-  if (is_image_modified_)
-    write_success = writer.write(modified_image_);
-  else
-    write_success = writer.write(original_image_);
-
-  if (!write_success) {
+  if (!writer.write(image_)) {
     QMessageBox::information(this, QGuiApplication::applicationDisplayName(),
                              tr("Cannot write %1: %2")
                              .arg(QDir::toNativeSeparators(file_name)), writer.errorString());
@@ -245,53 +210,129 @@ bool MainWindow::saveFile(const QString& file_name)
 void MainWindow::fitToWindow()
 {
   if (fit_to_window_action_->isChecked()) {
-    image_label_left_->setPixmap(pixmap_left_.scaled(scroll_area_left_->height(),
-                                                     scroll_area_left_->width(),
+    image_label_left_->setPixmap(pixmap_left_.scaled(scroll_area_left_->width(),
+                                                     scroll_area_left_->height(),
                                                      Qt::KeepAspectRatio,
                                                      Qt::SmoothTransformation));
     image_label_left_->adjustSize();
 
     if (!pixmap_right_.isNull()) {
-      image_label_right_->setPixmap(pixmap_right_.scaled(scroll_area_right_->height(),
-                                                         scroll_area_right_->width(),
+      image_label_right_->setPixmap(pixmap_right_.scaled(scroll_area_right_->width(),
+                                                         scroll_area_right_->height(),
                                                          Qt::KeepAspectRatio,
                                                          Qt::SmoothTransformation));
       image_label_right_->adjustSize();
     }
+
+    statusBar()->showMessage("Adjusted image to available space");
   } else {
-    // TODO(jfguimaraes) Should we keep a copy of the original image?
-    pixmap_left_ = QPixmap::fromImage(original_image_);
     image_label_left_->setPixmap(pixmap_left_);
     image_label_left_->adjustSize();
 
-    pixmap_right_ = QPixmap::fromImage(modified_image_);
     image_label_right_->setPixmap(pixmap_right_);
     image_label_right_->adjustSize();
+
+    statusBar()->showMessage("Showing image in original size");
   }
 }
 
 void MainWindow::mirrorHorizontally()
 {
-  QMessageBox::information(this, QGuiApplication::applicationDisplayName(),
-                           tr("Functionality not yet implemented!"));
+  pixmap_left_ = QPixmap::fromImage(image_);
+  int width = image_.width();
+  int height = image_.height();
+
+  for (int row_index = 0; row_index < height; row_index++) {
+    QRgb* line = (QRgb*) image_.scanLine(row_index);
+    for (int column_index = 0; column_index < width / 2; column_index++) {
+      std::swap(line[column_index], line[width - 1 - column_index]);
+    }
+  }
+
+  pixmap_right_ = QPixmap::fromImage(image_);
+  fitToWindow();
+  statusBar()->showMessage("Image mirrored horizontally");
 }
 
 void MainWindow::mirrorVertically()
 {
-  QMessageBox::information(this, QGuiApplication::applicationDisplayName(),
-                           tr("Functionality not yet implemented!"));
+  pixmap_left_ = QPixmap::fromImage(image_);
+  int width = image_.width();
+  int height = image_.height();
+  QRgb* buffer = new QRgb[width * sizeof(QRgb)];
+
+  try {
+    for (int row_index = 0; row_index < height / 2; row_index++) {
+      QRgb* first_line = (QRgb*) image_.scanLine(row_index);
+      QRgb* second_line = (QRgb*) image_.scanLine(height - 1 - row_index);
+      std::memcpy(buffer, first_line, width * sizeof(QRgb));
+      std::memcpy(first_line, second_line, width * sizeof(QRgb));
+      std::memcpy(second_line, buffer, width * sizeof(QRgb));
+    }
+  } catch (...) {
+    delete[] buffer;
+    throw;
+  }
+
+  delete[] buffer;
+  pixmap_right_ = QPixmap::fromImage(image_);
+  fitToWindow();
+  statusBar()->showMessage("Image mirrored vertically");
 }
 
 void MainWindow::convertToMonochrome()
 {
-  QMessageBox::information(this, QGuiApplication::applicationDisplayName(),
-                           tr("Functionality not yet implemented!"));
+  pixmap_left_ = QPixmap::fromImage(image_);
+  int width = image_.width();
+  int height = image_.height();
+
+  for (int row_index = 0; row_index < height; row_index++) {
+    QRgb* line = (QRgb*) image_.scanLine(row_index);
+    for (int column_index = 0; column_index < width; column_index++) {
+      auto* pixel = &line[column_index];
+      auto luminance = 0.299 * qRed(*pixel) + 0.587 * qGreen(*pixel) + 0.114 * qBlue(*pixel);
+      *pixel = qRgb(luminance, luminance, luminance);
+    }
+  }
+
+  pixmap_right_ = QPixmap::fromImage(image_);
+  fitToWindow();
+  updateActions();
+  statusBar()->showMessage("Image converted to monochrome");
 }
 
 void MainWindow::quantizeImage()
 {
-  QMessageBox::information(this, QGuiApplication::applicationDisplayName(),
-                           tr("Functionality not yet implemented!"));
+  bool ok;
+  int num_colors = QInputDialog::getInt(this, tr("Convert to Monochrome"),
+                                        tr("How many colors?"), 255, 1, 255, 1, &ok,
+                                        Qt::MSWindowsFixedSizeDialogHint);
+  if (!ok)
+    return;
+
+  int step = 0;
+  if (num_colors > 1)
+    step = 255 / (num_colors - 1);
+
+  pixmap_left_ = QPixmap::fromImage(image_);
+  int width = image_.width();
+  int height = image_.height();
+
+  for (int row_index = 0; row_index < height; row_index++) {
+    QRgb* line = (QRgb*) image_.scanLine(row_index);
+    for (int column_index = 0; column_index < width; column_index++) {
+      auto* pixel = &line[column_index];
+      auto luminance = 0.299 * qRed(*pixel) + 0.587 * qGreen(*pixel) + 0.114 * qBlue(*pixel);
+      auto color = std::round(luminance / step) * step;
+      *pixel = qRgb(color, color, color);
+    }
+  }
+
+  pixmap_right_ = QPixmap::fromImage(image_);
+  fitToWindow();
+  updateActions();
+  const QString message = tr("Quantized image with %1 color(s)").arg(num_colors);
+  statusBar()->showMessage(message);
 }
 
 void MainWindow::about()
@@ -304,20 +345,5 @@ void MainWindow::about()
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
   QMainWindow::resizeEvent(event);
-
-  if (fit_to_window_action_->isChecked()) {
-    image_label_left_->setPixmap(pixmap_left_.scaled(scroll_area_left_->height(),
-                                                     scroll_area_left_->width(),
-                                                     Qt::KeepAspectRatio,
-                                                     Qt::SmoothTransformation));
-    image_label_left_->adjustSize();
-
-    if (!pixmap_right_.isNull()) {
-      image_label_right_->setPixmap(pixmap_right_.scaled(scroll_area_right_->height(),
-                                                         scroll_area_right_->width(),
-                                                         Qt::KeepAspectRatio,
-                                                         Qt::SmoothTransformation));
-      image_label_right_->adjustSize();
-    }
-  }
+  fitToWindow();
 }

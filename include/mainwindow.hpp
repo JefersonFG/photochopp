@@ -9,6 +9,7 @@
 #include <QFileDialog>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
+#include <QPointer>
 
 class MainWindow : public QMainWindow
 {
@@ -16,7 +17,6 @@ class MainWindow : public QMainWindow
 
 public:
   explicit MainWindow(QWidget *parent = 0);
-  ~MainWindow();
 
 private slots:
   void open();
@@ -39,25 +39,22 @@ private:
   void resizeEvent(QResizeEvent* event);
 
   bool is_first_dialog_;
-  bool is_image_modified_;
-  bool is_image_monochrome_;
 
-  QImage original_image_;
-  QImage modified_image_;
+  QImage image_;
   QPixmap pixmap_left_;
   QPixmap pixmap_right_;
 
-  QLabel* image_title_left_;
-  QLabel* image_title_right_;
-  QLabel* image_label_left_;
-  QLabel* image_label_right_;
-  QScrollArea* scroll_area_left_;
-  QScrollArea* scroll_area_right_;
+  QPointer<QLabel> image_title_left_;
+  QPointer<QLabel> image_title_right_;
+  QPointer<QLabel> image_label_left_;
+  QPointer<QLabel> image_label_right_;
+  QPointer<QScrollArea> scroll_area_left_;
+  QPointer<QScrollArea> scroll_area_right_;
 
-  QWidget* central_widget_;
-  QHBoxLayout* horizontal_layout_;
-  QVBoxLayout* vertical_layout_left_;
-  QVBoxLayout* vertical_layout_right_;
+  QWidget central_widget_;
+  QHBoxLayout horizontal_layout_;
+  QVBoxLayout vertical_layout_left_;
+  QVBoxLayout vertical_layout_right_;
 
   QAction* save_as_action_;
   QAction* fit_to_window_action_;
