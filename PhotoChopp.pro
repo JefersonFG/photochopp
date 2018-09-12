@@ -11,6 +11,8 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = PhotoChopp
 TEMPLATE = app
 
+win32:RC_ICONS += res\icon\PhotoChopp.ico
+
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which has been marked as deprecated (the exact warnings
 # depend on your compiler). Please consult the documentation of the
@@ -25,10 +27,12 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         src\main.cpp \
-        src\mainwindow.cpp
+        src\mainwindow.cpp \
+    src/image_operations.cpp
 
 HEADERS += \
-        include\mainwindow.hpp
+        include\mainwindow.hpp \
+    include/image_operations.hpp
 
 FORMS += \
         res\mainwindow.ui

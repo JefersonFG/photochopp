@@ -14,6 +14,8 @@
 
 #include <cmath>
 
+#include "include/image_operations.hpp"
+
 MainWindow::MainWindow(QWidget *parent):
   QMainWindow(parent),
   is_first_dialog_(false),
@@ -90,7 +92,7 @@ void MainWindow::createActions()
   mirror_vertically_action_ = edit_menu->addAction(tr("Mirror &Vertically"), this, &MainWindow::mirrorVertically);
   mirror_vertically_action_->setEnabled(false);
 
-  convert_to_monochrome_action_ = edit_menu->addAction(tr("Convert to &Monochrome"), this, &MainWindow::convertToMonochrome);
+  convert_to_monochrome_action_ = edit_menu->addAction(tr("Convert to &Grayscale"), this, &MainWindow::convertToGrayscale);
   convert_to_monochrome_action_->setEnabled(false);
 
   quantize_image_action_ = edit_menu->addAction(tr("&Quantize Image"), this, &MainWindow::quantizeImage);
@@ -238,17 +240,7 @@ void MainWindow::fitToWindow()
 
 void MainWindow::mirrorHorizontally()
 {
-  pixmap_left_ = QPixmap::fromImage(image_);
-  int width = image_.width();
-  int height = image_.height();
-
-  for (int row_index = 0; row_index < height; row_index++) {
-    QRgb* line = (QRgb*) image_.scanLine(row_index);
-    for (int column_index = 0; column_index < width / 2; column_index++) {
-      std::swap(line[column_index], line[width - 1 - column_index]);
-    }
-  }
-
+  image_ = image_op::mirrorHorizontally(image_);
   pixmap_right_ = QPixmap::fromImage(image_);
   fitToWindow();
   statusBar()->showMessage("Image mirrored horizontally");
@@ -256,49 +248,19 @@ void MainWindow::mirrorHorizontally()
 
 void MainWindow::mirrorVertically()
 {
-  pixmap_left_ = QPixmap::fromImage(image_);
-  int width = image_.width();
-  int height = image_.height();
-  QRgb* buffer = new QRgb[width * sizeof(QRgb)];
-
-  try {
-    for (int row_index = 0; row_index < height / 2; row_index++) {
-      QRgb* first_line = (QRgb*) image_.scanLine(row_index);
-      QRgb* second_line = (QRgb*) image_.scanLine(height - 1 - row_index);
-      std::memcpy(buffer, first_line, width * sizeof(QRgb));
-      std::memcpy(first_line, second_line, width * sizeof(QRgb));
-      std::memcpy(second_line, buffer, width * sizeof(QRgb));
-    }
-  } catch (...) {
-    delete[] buffer;
-    throw;
-  }
-
-  delete[] buffer;
+  image_ = image_op::mirrorVertically(image_);
   pixmap_right_ = QPixmap::fromImage(image_);
   fitToWindow();
   statusBar()->showMessage("Image mirrored vertically");
 }
 
-void MainWindow::convertToMonochrome()
+void MainWindow::convertToGrayscale()
 {
-  pixmap_left_ = QPixmap::fromImage(image_);
-  int width = image_.width();
-  int height = image_.height();
-
-  for (int row_index = 0; row_index < height; row_index++) {
-    QRgb* line = (QRgb*) image_.scanLine(row_index);
-    for (int column_index = 0; column_index < width; column_index++) {
-      auto* pixel = &line[column_index];
-      auto luminance = 0.299 * qRed(*pixel) + 0.587 * qGreen(*pixel) + 0.114 * qBlue(*pixel);
-      *pixel = qRgb(luminance, luminance, luminance);
-    }
-  }
-
+  image_ = image_op::convertColoredToGrayscale(image_);
   pixmap_right_ = QPixmap::fromImage(image_);
   fitToWindow();
   updateActions();
-  statusBar()->showMessage("Image converted to monochrome");
+  statusBar()->showMessage("Image converted to grayscale");
 }
 
 void MainWindow::quantizeImage()
@@ -310,24 +272,7 @@ void MainWindow::quantizeImage()
   if (!ok)
     return;
 
-  int step = 0;
-  if (num_colors > 1)
-    step = 255 / (num_colors - 1);
-
-  pixmap_left_ = QPixmap::fromImage(image_);
-  int width = image_.width();
-  int height = image_.height();
-
-  for (int row_index = 0; row_index < height; row_index++) {
-    QRgb* line = (QRgb*) image_.scanLine(row_index);
-    for (int column_index = 0; column_index < width; column_index++) {
-      auto* pixel = &line[column_index];
-      auto luminance = 0.299 * qRed(*pixel) + 0.587 * qGreen(*pixel) + 0.114 * qBlue(*pixel);
-      auto color = std::round(luminance / step) * step;
-      *pixel = qRgb(color, color, color);
-    }
-  }
-
+  image_ = image_op::quantizeGrayscale(image_, num_colors);
   pixmap_right_ = QPixmap::fromImage(image_);
   fitToWindow();
   updateActions();
@@ -345,5 +290,7 @@ void MainWindow::about()
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
   QMainWindow::resizeEvent(event);
-  fitToWindow();
+
+  if (!image_.isNull())
+    fitToWindow();
 }

@@ -19,23 +19,76 @@ public:
   explicit MainWindow(QWidget *parent = 0);
 
 private slots:
+  /**
+   * Shows a file open dialog to the user
+   */
   void open();
+
+  /**
+   * Shows a file save dialog to the user
+   */
   void saveAs();
+
+  /**
+   * Updates the image on screen, changing to/from fit to space available to/from original size
+   */
   void fitToWindow();
   void about();
 
 private:
+  /**
+   * Creates menu actions
+   */
   void createActions();
+
+  /**
+   * Updates menu actions, enabling/disabling options based on current image state
+   */
   void updateActions();
+
+  /**
+   * Loads image to memory
+   */
   bool loadFile(const QString& file_name);
+
+  /**
+   * Saves modified image to disk
+   */
   bool saveFile(const QString& file_name);
+
+  /**
+   * Set loaded image to display on left panel and reset right panel
+   */
   void setImage(const QImage& new_image);
+
+  /**
+   * Configures file dialogs to default to jpeg images
+   */
   void initializeImageFileDialog(QFileDialog& dialog, QFileDialog::AcceptMode accept_mode);
+
+  /**
+   * Applies horizontal mirroring operation on the current image
+   */
   void mirrorHorizontally();
+
+  /**
+   * Applies vertical mirroring operation on the current image
+   */
   void mirrorVertically();
-  void convertToMonochrome();
+
+  /**
+   * Applies grayscale conversion operation on the current image
+   */
+  void convertToGrayscale();
+
+  /**
+   * Applies quantization operation on the current image
+   */
   void quantizeImage();
 
+  /**
+   * Window resize event, updates image size
+   */
   void resizeEvent(QResizeEvent* event);
 
   bool is_first_dialog_;
