@@ -1,6 +1,9 @@
 #include "include/mainwindow.hpp"
 #include "ui_mainwindow.h"
 
+#include <cmath>
+#include <vector>
+
 #include <QImageReader>
 #include <QMessageBox>
 #include <QDir>
@@ -11,8 +14,7 @@
 #include <QStandardPaths>
 #include <QImageWriter>
 #include <QScreen>
-
-#include <cmath>
+#include <QPainter>
 
 #include "include/image_operations.hpp"
 
@@ -98,6 +100,9 @@ void MainWindow::createActions()
   quantize_image_action_ = edit_menu->addAction(tr("&Quantize Image"), this, &MainWindow::quantizeImage);
   quantize_image_action_->setEnabled(false);
 
+  generate_histogram_action_ = edit_menu->addAction(tr("&Generate Histogram"), this, &MainWindow::generateHistogram);
+  generate_histogram_action_->setEnabled(false);
+
   QMenu *view_menu = menuBar()->addMenu(tr("&View"));
 
   fit_to_window_action_ = view_menu->addAction(tr("&Fit to Window"), this, &MainWindow::fitToWindow);
@@ -118,6 +123,7 @@ void MainWindow::updateActions()
   mirror_vertically_action_->setEnabled(!image_.isNull());
   convert_to_monochrome_action_->setEnabled(!image_.isNull());
   quantize_image_action_->setEnabled(!image_.isNull() && image_.isGrayscale());
+  generate_histogram_action_->setEnabled(!image_.isNull() && image_.isGrayscale());
 }
 
 void MainWindow::initializeImageFileDialog(QFileDialog& dialog, QFileDialog::AcceptMode accept_mode)
@@ -209,35 +215,6 @@ bool MainWindow::saveFile(const QString& file_name)
   return true;
 }
 
-void MainWindow::fitToWindow()
-{
-  if (fit_to_window_action_->isChecked()) {
-    image_label_left_->setPixmap(pixmap_left_.scaled(scroll_area_left_->width(),
-                                                     scroll_area_left_->height(),
-                                                     Qt::KeepAspectRatio,
-                                                     Qt::SmoothTransformation));
-    image_label_left_->adjustSize();
-
-    if (!pixmap_right_.isNull()) {
-      image_label_right_->setPixmap(pixmap_right_.scaled(scroll_area_right_->width(),
-                                                         scroll_area_right_->height(),
-                                                         Qt::KeepAspectRatio,
-                                                         Qt::SmoothTransformation));
-      image_label_right_->adjustSize();
-    }
-
-    statusBar()->showMessage("Adjusted image to available space");
-  } else {
-    image_label_left_->setPixmap(pixmap_left_);
-    image_label_left_->adjustSize();
-
-    image_label_right_->setPixmap(pixmap_right_);
-    image_label_right_->adjustSize();
-
-    statusBar()->showMessage("Showing image in original size");
-  }
-}
-
 void MainWindow::mirrorHorizontally()
 {
   image_ = image_op::mirrorHorizontally(image_);
@@ -278,6 +255,77 @@ void MainWindow::quantizeImage()
   updateActions();
   const QString message = tr("Quantized image with %1 color(s)").arg(num_colors);
   statusBar()->showMessage(message);
+}
+
+void MainWindow::generateHistogram()
+{
+  auto histogram_data = image_op::generateGrayscaleHistogramData(image_);
+
+  auto histogram = image_op::generate2DHistogramPixmap(histogram_data);
+
+  QPointer<QLabel> histogram_label = new QLabel();
+  histogram_label->setWindowTitle("Histogram");
+  histogram_label->setPixmap(histogram);
+  histogram_label->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
+  histogram_label->adjustSize();
+  histogram_label->show();
+  histogram_label->resize(256, 256);
+
+  /* Code using QtCharts
+
+  QPointer<QtCharts::QBarSet> histogram = new QtCharts::QBarSet("histogram");
+  histogram->setColor(Qt::black);
+  histogram->setBorderColor(Qt::black);
+
+  for (const auto& data : histogram_data)
+    histogram->append(data);
+
+  QtCharts::QBarSeries* series = new QtCharts::QBarSeries();
+  series->append(histogram);
+
+  QtCharts::QChart* chart = new QtCharts::QChart();
+
+  chart->addSeries(series);
+  chart->setTitle("Image histogram");
+  chart->setAnimationOptions(QtCharts::QChart::SeriesAnimations);
+  chart->createDefaultAxes();
+  chart->legend()->setVisible(false);
+
+  QPointer<QtCharts::QChartView> chart_view = new QtCharts::QChartView(chart);
+  chart_view->show();
+  chart_view->resize(QGuiApplication::primaryScreen()->availableSize() * 3 / 5);*/
+
+  updateActions();
+  statusBar()->showMessage("Histogram generated");
+}
+
+void MainWindow::fitToWindow()
+{
+  if (fit_to_window_action_->isChecked()) {
+    image_label_left_->setPixmap(pixmap_left_.scaled(scroll_area_left_->width(),
+                                                     scroll_area_left_->height(),
+                                                     Qt::KeepAspectRatio,
+                                                     Qt::SmoothTransformation));
+    image_label_left_->adjustSize();
+
+    if (!pixmap_right_.isNull()) {
+      image_label_right_->setPixmap(pixmap_right_.scaled(scroll_area_right_->width(),
+                                                         scroll_area_right_->height(),
+                                                         Qt::KeepAspectRatio,
+                                                         Qt::SmoothTransformation));
+      image_label_right_->adjustSize();
+    }
+
+    statusBar()->showMessage("Adjusted image to available space");
+  } else {
+    image_label_left_->setPixmap(pixmap_left_);
+    image_label_left_->adjustSize();
+
+    image_label_right_->setPixmap(pixmap_right_);
+    image_label_right_->adjustSize();
+
+    statusBar()->showMessage("Showing image in original size");
+  }
 }
 
 void MainWindow::about()

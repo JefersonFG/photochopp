@@ -4,7 +4,7 @@
 #include <QAction>
 #include <QImage>
 #include <QLabel>
-#include <QPixMap>
+#include <QPixmap>
 #include <QScrollArea>
 #include <QFileDialog>
 #include <QHBoxLayout>
@@ -16,7 +16,7 @@ class MainWindow : public QMainWindow
   Q_OBJECT
 
 public:
-  explicit MainWindow(QWidget *parent = 0);
+  explicit MainWindow(QWidget *parent = nullptr);
 
 private slots:
   /**
@@ -33,6 +33,10 @@ private slots:
    * Updates the image on screen, changing to/from fit to space available to/from original size
    */
   void fitToWindow();
+
+  /**
+   * Shows information about the software and its implementation
+   */
   void about();
 
 private:
@@ -87,6 +91,11 @@ private:
   void quantizeImage();
 
   /**
+   * Generates and shows the histogram of the current image
+   */
+  void generateHistogram();
+
+  /**
    * Window resize event, updates image size
    */
   void resizeEvent(QResizeEvent* event);
@@ -110,9 +119,10 @@ private:
   QVBoxLayout vertical_layout_right_;
 
   QAction* save_as_action_;
-  QAction* fit_to_window_action_;
   QAction* mirror_horizontally_action_;
   QAction* mirror_vertically_action_;
   QAction* convert_to_monochrome_action_;
   QAction* quantize_image_action_;
+  QAction* generate_histogram_action_;
+  QAction* fit_to_window_action_;
 };
