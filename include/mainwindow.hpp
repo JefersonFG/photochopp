@@ -96,6 +96,21 @@ private:
   void generateHistogram();
 
   /**
+   * Adjusts the brightness of the current image
+   */
+  void adjustBrightness();
+
+  /**
+   * Adjusts the constrast of the current image
+   */
+  void adjustContrast();
+
+  /**
+   * Gets the negative of the image
+   */
+  void getNegative();
+
+  /**
    * Window resize event, updates image size
    */
   void resizeEvent(QResizeEvent* event);
@@ -124,5 +139,8 @@ private:
   QAction* convert_to_monochrome_action_;
   QAction* quantize_image_action_;
   QAction* generate_histogram_action_;
+  QAction* adjust_brightness_action_;
+  QAction* adjust_contrast_action_;
+  QAction* get_negative_action_;
   QAction* fit_to_window_action_;
 };

@@ -46,4 +46,23 @@ std::vector<int> generateGrayscaleHistogramData(QImage image);
  */
 QPixmap generate2DHistogramPixmap(std::vector<int> histogram_data);
 
+/**
+ * Adjusts the brightness of an image by adding the desired value to
+ * all the pixels on all channels separatedly and then combining them
+ */
+QImage adjustBrightness(QImage image, int brightness_value);
+
+/**
+ * Adjusts the contrast of an image by multiplying the desired value to
+ * all the pixels on all channels separatedly and then combining them
+ */
+QImage adjustContrast(QImage image, int contrast_factor);
+
+/**
+ * Returns the negative of the image by inverting the value of each pixel
+ * on each channel separatedly
+ * Assumes 8-bit image
+ */
+QImage getNegativeImage(QImage image);
+
 } // namespace image_op

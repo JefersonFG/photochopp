@@ -100,8 +100,17 @@ void MainWindow::createActions()
   quantize_image_action_ = edit_menu->addAction(tr("&Quantize Image"), this, &MainWindow::quantizeImage);
   quantize_image_action_->setEnabled(false);
 
-  generate_histogram_action_ = edit_menu->addAction(tr("&Generate Histogram"), this, &MainWindow::generateHistogram);
+  generate_histogram_action_ = edit_menu->addAction(tr("Generate H&istogram"), this, &MainWindow::generateHistogram);
   generate_histogram_action_->setEnabled(false);
+
+  adjust_brightness_action_ = edit_menu->addAction(tr("Adjust &Brightness"), this, &MainWindow::adjustBrightness);
+  adjust_brightness_action_->setEnabled(false);
+
+  adjust_contrast_action_ = edit_menu->addAction(tr("Adjust &Contrast"), this, &MainWindow::adjustContrast);
+  adjust_contrast_action_->setEnabled(false);
+
+  get_negative_action_ = edit_menu->addAction(tr("Get &Negative Image"), this, &MainWindow::getNegative);
+  get_negative_action_->setEnabled(false);
 
   QMenu *view_menu = menuBar()->addMenu(tr("&View"));
 
@@ -124,6 +133,9 @@ void MainWindow::updateActions()
   convert_to_monochrome_action_->setEnabled(!image_.isNull());
   quantize_image_action_->setEnabled(!image_.isNull() && image_.isGrayscale());
   generate_histogram_action_->setEnabled(!image_.isNull() && image_.isGrayscale());
+  adjust_brightness_action_->setEnabled(!image_.isNull());
+  adjust_contrast_action_->setEnabled(!image_.isNull());
+  get_negative_action_->setEnabled(!image_.isNull());
 }
 
 void MainWindow::initializeImageFileDialog(QFileDialog& dialog, QFileDialog::AcceptMode accept_mode)
@@ -271,32 +283,50 @@ void MainWindow::generateHistogram()
   histogram_label->show();
   histogram_label->resize(256, 256);
 
-  /* Code using QtCharts
-
-  QPointer<QtCharts::QBarSet> histogram = new QtCharts::QBarSet("histogram");
-  histogram->setColor(Qt::black);
-  histogram->setBorderColor(Qt::black);
-
-  for (const auto& data : histogram_data)
-    histogram->append(data);
-
-  QtCharts::QBarSeries* series = new QtCharts::QBarSeries();
-  series->append(histogram);
-
-  QtCharts::QChart* chart = new QtCharts::QChart();
-
-  chart->addSeries(series);
-  chart->setTitle("Image histogram");
-  chart->setAnimationOptions(QtCharts::QChart::SeriesAnimations);
-  chart->createDefaultAxes();
-  chart->legend()->setVisible(false);
-
-  QPointer<QtCharts::QChartView> chart_view = new QtCharts::QChartView(chart);
-  chart_view->show();
-  chart_view->resize(QGuiApplication::primaryScreen()->availableSize() * 3 / 5);*/
-
   updateActions();
   statusBar()->showMessage("Histogram generated");
+}
+
+void MainWindow::adjustBrightness()
+{
+  bool ok;
+  int brightness_value = QInputDialog::getInt(this, tr("Adjust brightness"),
+                                              tr("Add which value?"), 0, -255, 255, 1, &ok,
+                                              Qt::MSWindowsFixedSizeDialogHint);
+  if (!ok)
+    return;
+
+  image_ = image_op::adjustBrightness(image_, brightness_value);
+  pixmap_right_ = QPixmap::fromImage(image_);
+  fitToWindow();
+  updateActions();
+  const QString message = tr("Adjusted image brightness by %1").arg(brightness_value);
+  statusBar()->showMessage(message);
+}
+
+void MainWindow::adjustContrast()
+{
+  bool ok;
+  int contrast_factor = QInputDialog::getInt(this, tr("Adjust contrast"),
+                                             tr("By which factor?"), 1, 1, 255, 1, &ok,
+                                             Qt::MSWindowsFixedSizeDialogHint);
+  if (!ok)
+    return;
+
+  image_ = image_op::adjustContrast(image_, contrast_factor);
+  pixmap_right_ = QPixmap::fromImage(image_);
+  fitToWindow();
+  updateActions();
+  const QString message = tr("Adjusted image contrast by a factor of %1").arg(contrast_factor);
+  statusBar()->showMessage(message);
+}
+
+void MainWindow::getNegative()
+{
+  image_ = image_op::getNegativeImage(image_);
+  pixmap_right_ = QPixmap::fromImage(image_);
+  fitToWindow();
+  statusBar()->showMessage("Generated negative image");
 }
 
 void MainWindow::fitToWindow()

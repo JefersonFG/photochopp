@@ -120,4 +120,67 @@ QPixmap generate2DHistogramPixmap(std::vector<int> histogram_data)
   return histogram;
 }
 
+QImage adjustBrightness(QImage image, int brightness_value)
+{
+  int width = image.width();
+  int height = image.height();
+
+  for (int row_index = 0; row_index < height; row_index++) {
+    QRgb* line = reinterpret_cast<QRgb*>(image.scanLine(row_index));
+    for (int column_index = 0; column_index < width; column_index++) {
+      auto* pixel = &line[column_index];
+      auto red = qRed(*pixel) + brightness_value;
+      red = red > 255 ? 255 : red < 0 ? 0 : red;
+      auto green = qGreen(*pixel) + brightness_value;
+      green = green > 255 ? 255 : green < 0 ? 0 : green;
+      auto blue = qBlue(*pixel) + brightness_value;
+      blue = blue > 255 ? 255 : blue < 0 ? 0 : blue;
+      *pixel = qRgb(red, green, blue);
+    }
+  }
+
+  return image;
+}
+
+QImage adjustContrast(QImage image, int contrast_factor)
+{
+  int width = image.width();
+  int height = image.height();
+
+  for (int row_index = 0; row_index < height; row_index++) {
+    QRgb* line = reinterpret_cast<QRgb*>(image.scanLine(row_index));
+    for (int column_index = 0; column_index < width; column_index++) {
+      auto* pixel = &line[column_index];
+      auto red = qRed(*pixel) * contrast_factor;
+      red = red > 255 ? 255 : red < 0 ? 0 : red;
+      auto green = qGreen(*pixel) * contrast_factor;
+      green = green > 255 ? 255 : green < 0 ? 0 : green;
+      auto blue = qBlue(*pixel) * contrast_factor;
+      blue = blue > 255 ? 255 : blue < 0 ? 0 : blue;
+      *pixel = qRgb(red, green, blue);
+    }
+  }
+
+  return image;
+}
+
+QImage getNegativeImage(QImage image)
+{
+  int width = image.width();
+  int height = image.height();
+
+  for (int row_index = 0; row_index < height; row_index++) {
+    QRgb* line = reinterpret_cast<QRgb*>(image.scanLine(row_index));
+    for (int column_index = 0; column_index < width; column_index++) {
+      auto* pixel = &line[column_index];
+      auto red = 255 - qRed(*pixel);
+      auto green = 255 - qGreen(*pixel);
+      auto blue = 255 - qBlue(*pixel);
+      *pixel = qRgb(red, green, blue);
+    }
+  }
+
+  return image;
+}
+
 }
