@@ -111,6 +111,12 @@ private:
   void getNegative();
 
   /**
+   * Equalizes the image histogram, showing the original
+   * and posterior histogram for grayscale images
+   */
+  void equalizeHistogram();
+
+  /**
    * Window resize event, updates image size
    */
   void resizeEvent(QResizeEvent* event);
@@ -142,5 +148,6 @@ private:
   QAction* adjust_brightness_action_;
   QAction* adjust_contrast_action_;
   QAction* get_negative_action_;
+  QAction* equalize_histogram_action_;
   QAction* fit_to_window_action_;
 };

@@ -183,4 +183,40 @@ QImage getNegativeImage(QImage image)
   return image;
 }
 
+QImage equalizeHistogram(QImage image)
+{
+  // TODO(jfguimaraes) Implement L*a*b color space
+  int width = image.width();
+  int height = image.height();
+  std::vector<int> histogram_data;
+
+  if (image.isGrayscale())
+    histogram_data = generateGrayscaleHistogramData(image);
+  else
+    histogram_data = generateGrayscaleHistogramData(convertColoredToGrayscale(image));
+
+  std::vector<int> cumulative_histogram(256);
+  double alpha = 255.0 / (width * height);
+
+  // Generate cumulative histogram of luminance channel
+  cumulative_histogram[0] = static_cast<int>(std::round(alpha * histogram_data[0]));
+
+  for (size_t i = 1; i < 256; i++)
+    cumulative_histogram[i] = cumulative_histogram[i-1] + static_cast<int>(std::round(alpha * histogram_data[i]));
+
+  // Update pixel values
+  for (int row_index = 0; row_index < height; row_index++) {
+    QRgb* line = reinterpret_cast<QRgb*>(image.scanLine(row_index));
+    for (int column_index = 0; column_index < width; column_index++) {
+      auto* pixel = &line[column_index];
+      auto red = cumulative_histogram[static_cast<size_t>(qRed(*pixel))];
+      auto green = cumulative_histogram[static_cast<size_t>(qGreen(*pixel))];
+      auto blue = cumulative_histogram[static_cast<size_t>(qBlue(*pixel))];
+      *pixel = qRgb(red, green, blue);
+    }
+  }
+
+  return image;
+}
+
 }

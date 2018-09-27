@@ -112,6 +112,9 @@ void MainWindow::createActions()
   get_negative_action_ = edit_menu->addAction(tr("Get &Negative Image"), this, &MainWindow::getNegative);
   get_negative_action_->setEnabled(false);
 
+  equalize_histogram_action_ = edit_menu->addAction(tr("&Equalize Histogram"), this, &MainWindow::equalizeHistogram);
+  equalize_histogram_action_->setEnabled(false);
+
   QMenu *view_menu = menuBar()->addMenu(tr("&View"));
 
   fit_to_window_action_ = view_menu->addAction(tr("&Fit to Window"), this, &MainWindow::fitToWindow);
@@ -136,6 +139,7 @@ void MainWindow::updateActions()
   adjust_brightness_action_->setEnabled(!image_.isNull());
   adjust_contrast_action_->setEnabled(!image_.isNull());
   get_negative_action_->setEnabled(!image_.isNull());
+  equalize_histogram_action_->setEnabled(!image_.isNull());
 }
 
 void MainWindow::initializeImageFileDialog(QFileDialog& dialog, QFileDialog::AcceptMode accept_mode)
@@ -272,7 +276,6 @@ void MainWindow::quantizeImage()
 void MainWindow::generateHistogram()
 {
   auto histogram_data = image_op::generateGrayscaleHistogramData(image_);
-
   auto histogram = image_op::generate2DHistogramPixmap(histogram_data);
 
   QPointer<QLabel> histogram_label = new QLabel();
@@ -281,7 +284,8 @@ void MainWindow::generateHistogram()
   histogram_label->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
   histogram_label->adjustSize();
   histogram_label->show();
-  histogram_label->resize(256, 256);
+  // Adding a margin of 20 pixels to better visualize the edges of the histogram
+  histogram_label->resize(276, 276);
 
   updateActions();
   statusBar()->showMessage("Histogram generated");
@@ -327,6 +331,58 @@ void MainWindow::getNegative()
   pixmap_right_ = QPixmap::fromImage(image_);
   fitToWindow();
   statusBar()->showMessage("Generated negative image");
+}
+
+void MainWindow::equalizeHistogram()
+{
+  // Update left image to show image before equalization
+  pixmap_left_ = QPixmap::fromImage(image_);
+
+  if (image_.isGrayscale()) {
+    // Original image histogram
+    auto histogram_data = image_op::generateGrayscaleHistogramData(image_);
+    auto original_histogram = image_op::generate2DHistogramPixmap(histogram_data);
+
+    // Histogram equalization
+    image_ = image_op::equalizeHistogram(image_);
+    pixmap_right_ = QPixmap::fromImage(image_);
+    fitToWindow();
+
+    // Modified image equalization
+    histogram_data = image_op::generateGrayscaleHistogramData(image_);
+    auto modified_histogram = image_op::generate2DHistogramPixmap(histogram_data);
+
+    // Show original and modified histogram side by side
+    QPointer<QWidget> histogram_window = new QWidget();
+    histogram_window->setWindowTitle("Original histogram vs modified histogram");
+
+    QPointer<QHBoxLayout> histogram_layout = new QHBoxLayout();
+
+    QPointer<QLabel> original_histogram_label = new QLabel();
+    original_histogram_label->setPixmap(original_histogram);
+    original_histogram_label->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
+    original_histogram_label->adjustSize();
+
+    QPointer<QLabel> modified_histogram_label = new QLabel();
+    modified_histogram_label->setPixmap(modified_histogram);
+    modified_histogram_label->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
+    modified_histogram_label->adjustSize();
+
+    histogram_layout->addWidget(original_histogram_label);
+    histogram_layout->addWidget(modified_histogram_label);
+    histogram_layout->setSpacing(10);
+
+    histogram_window->setLayout(histogram_layout);
+    histogram_window->adjustSize();
+    histogram_window->show();
+  } else {
+    // Histogram equalization
+    image_ = image_op::equalizeHistogram(image_);
+    pixmap_right_ = QPixmap::fromImage(image_);
+    fitToWindow();
+  }
+
+  statusBar()->showMessage("Equalized image histogram");
 }
 
 void MainWindow::fitToWindow()

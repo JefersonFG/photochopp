@@ -65,4 +65,9 @@ QImage adjustContrast(QImage image, int contrast_factor);
  */
 QImage getNegativeImage(QImage image);
 
+/**
+ * Equalizes the image histogram using the cumulative luminance histogram
+ */
+QImage equalizeHistogram(QImage image);
+
 } // namespace image_op
