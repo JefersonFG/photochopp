@@ -115,6 +115,9 @@ void MainWindow::createActions()
   equalize_histogram_action_ = edit_menu->addAction(tr("&Equalize Histogram"), this, &MainWindow::equalizeHistogram);
   equalize_histogram_action_->setEnabled(false);
 
+  match_histogram_action_ = edit_menu->addAction(tr("&Match Histogram"), this, &MainWindow::matchHistogram);
+  match_histogram_action_->setEnabled(false);
+
   QMenu *view_menu = menuBar()->addMenu(tr("&View"));
 
   fit_to_window_action_ = view_menu->addAction(tr("&Fit to Window"), this, &MainWindow::fitToWindow);
@@ -140,6 +143,7 @@ void MainWindow::updateActions()
   adjust_contrast_action_->setEnabled(!image_.isNull());
   get_negative_action_->setEnabled(!image_.isNull());
   equalize_histogram_action_->setEnabled(!image_.isNull());
+  match_histogram_action_->setEnabled(!image_.isNull() && image_.isGrayscale());
 }
 
 void MainWindow::initializeImageFileDialog(QFileDialog& dialog, QFileDialog::AcceptMode accept_mode)
@@ -383,6 +387,50 @@ void MainWindow::equalizeHistogram()
   }
 
   statusBar()->showMessage("Equalized image histogram");
+}
+
+bool MainWindow::loadGrayscaleImage(const QString& file_name, QImage& image)
+{
+  QImageReader reader(file_name);
+  reader.setAutoTransform(true);
+  image = reader.read();
+
+  if (image.isNull()) {
+    QMessageBox::information(this, QGuiApplication::applicationDisplayName(),
+                             tr("Cannot load %1: %2")
+                             .arg(QDir::toNativeSeparators(file_name), reader.errorString()));
+    return false;
+  } else if (!image.isGrayscale()) {
+    QMessageBox::information(this, QGuiApplication::applicationDisplayName(),
+                             tr("Cannot load %1: must be a grayscale image")
+                             .arg(QDir::toNativeSeparators(file_name)));
+    return false;
+  }
+
+  return true;
+}
+
+void MainWindow::matchHistogram()
+{
+  // Update left image to show image before matching
+  pixmap_left_ = QPixmap::fromImage(image_);
+
+  QFileDialog dialog(this, tr("Open File"));
+  initializeImageFileDialog(dialog, QFileDialog::AcceptOpen);
+
+  QImage target_image;
+
+  while (dialog.exec() == QDialog::Accepted
+         && !loadGrayscaleImage(dialog.selectedFiles().first(), target_image));
+
+  if (target_image.isNull())
+    return;
+
+  image_ = image_op::matchGrayscaleHistogram(image_, target_image);
+  pixmap_right_ = QPixmap::fromImage(image_);
+  fitToWindow();
+
+  statusBar()->showMessage("Matched image histogram");
 }
 
 void MainWindow::fitToWindow()

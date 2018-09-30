@@ -117,6 +117,17 @@ private:
   void equalizeHistogram();
 
   /**
+   * Loads grayscale image, fails if is colored
+   */
+  bool loadGrayscaleImage(const QString& file_name, QImage& image);
+
+  /**
+   * Matches the current grayscale image histogram with
+   * the histogram of a selected grayscale image
+   */
+  void matchHistogram();
+
+  /**
    * Window resize event, updates image size
    */
   void resizeEvent(QResizeEvent* event);
@@ -149,5 +160,6 @@ private:
   QAction* adjust_contrast_action_;
   QAction* get_negative_action_;
   QAction* equalize_histogram_action_;
+  QAction* match_histogram_action_;
   QAction* fit_to_window_action_;
 };

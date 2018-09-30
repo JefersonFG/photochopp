@@ -219,4 +219,77 @@ QImage equalizeHistogram(QImage image)
   return image;
 }
 
+QImage matchGrayscaleHistogram(QImage original_image, QImage target_image)
+{
+  int width = original_image.width();
+  int height = original_image.height();
+
+  // Get histograms
+  auto original_histogram_data = generateGrayscaleHistogramData(original_image);
+  auto target_histogram_data = generateGrayscaleHistogramData(target_image);
+
+  // Get cumulative histograms
+  // TODO(jfguimaraes) Function for cumulative histograms
+  std::vector<int> original_cumulative_histogram(256);
+  double original_alpha = 255.0 / (width * height);
+
+  original_cumulative_histogram[0] = static_cast<int>(std::round(original_alpha * original_histogram_data[0]));
+
+  for (size_t i = 1; i < 256; i++) {
+    original_cumulative_histogram[i] = original_cumulative_histogram[i-1]
+        + static_cast<int>(std::round(original_alpha * original_histogram_data[i]));
+    original_cumulative_histogram[i] = original_cumulative_histogram[i] > 255 ?
+          255 : original_cumulative_histogram[i];
+  }
+
+  std::vector<int> target_cumulative_histogram(256);
+  double target_alpha = 255.0 / (target_image.width() * target_image.height());
+
+  target_cumulative_histogram[0] = static_cast<int>(std::round(target_alpha * target_histogram_data[0]));
+
+  for (size_t i = 1; i < 256; i++) {
+    target_cumulative_histogram[i] = target_cumulative_histogram[i-1]
+        + static_cast<int>(std::round(target_alpha * target_histogram_data[i]));
+    target_cumulative_histogram[i] = target_cumulative_histogram[i] > 255 ?
+          255 : target_cumulative_histogram[i];
+  }
+
+  // For each shade map the closest on the target image to the map function
+  std::vector<int> map_function(256);
+
+  // TODO(jfguimaraes) Optimize this
+  for (int i = 0; i < 256; i++) {
+    int original_shade = original_cumulative_histogram[static_cast<size_t>(i)];
+    int lowest_difference = 300;
+    int nearest_shade_index = 0;
+
+    for (int j = 0; j < 256; j++) {
+      int target_shade = target_cumulative_histogram[static_cast<size_t>(j)];
+
+      if (abs(target_shade - original_shade) < lowest_difference) {
+        lowest_difference = abs(target_shade - original_shade);
+        nearest_shade_index = j;
+      }
+
+      if (lowest_difference == 0)
+        break;
+    }
+
+    map_function[static_cast<size_t>(i)] = nearest_shade_index;
+  }
+
+  // Match histogram using the map function
+  for (int row_index = 0; row_index < height; row_index++) {
+    QRgb* line = reinterpret_cast<QRgb*>(original_image.scanLine(row_index));
+    for (int column_index = 0; column_index < width; column_index++) {
+      auto* pixel = &line[column_index];
+      // Since it is a grayscale image each channel has the same value
+      auto color = map_function[static_cast<size_t>(qRed(*pixel))];
+      *pixel = qRgb(color, color, color);
+    }
+  }
+
+  return original_image;
+}
+
 }

@@ -70,4 +70,10 @@ QImage getNegativeImage(QImage image);
  */
 QImage equalizeHistogram(QImage image);
 
+/**
+ * Matches the histogram of the original image with the target image,
+ * assuming both grayscale 8-bit images
+ */
+QImage matchGrayscaleHistogram(QImage original_image, QImage target_image);
+
 } // namespace image_op
