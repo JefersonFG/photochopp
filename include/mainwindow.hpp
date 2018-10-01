@@ -133,6 +133,11 @@ private:
   void zoomOut();
 
   /**
+   * Applies zoom in to the image with a 2 x 2 factor
+   */
+  void zoomIn();
+
+  /**
    * Window resize event, updates image size
    */
   void resizeEvent(QResizeEvent* event);
@@ -167,5 +172,6 @@ private:
   QAction* equalize_histogram_action_;
   QAction* match_histogram_action_;
   QAction* zoom_out_action_;
+  QAction* zoom_in_action_;
   QAction* fit_to_window_action_;
 };

@@ -82,4 +82,10 @@ QImage matchGrayscaleHistogram(QImage original_image, QImage target_image);
  */
 QImage zoomOutByFactors(QImage image, int sx, int sy);
 
+/**
+ * Zooms in the image with a 2x2 factor, interpolating pixels between columns
+ * on each of the original lines then between lines
+ */
+QImage zoomIn2x2(QImage image);
+
 } // namespace image_op

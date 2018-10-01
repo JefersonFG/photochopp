@@ -341,4 +341,72 @@ QImage zoomOutByFactors(QImage image, int sx, int sy)
   return target_image;
 }
 
+QImage zoomIn2x2(QImage image)
+{
+  int original_width = image.width();
+  int original_height = image.height();
+
+  int target_width = 2 * original_width;
+  int target_height = 2 * original_height;
+
+  QImage target_image(target_width, target_height, QImage::Format_RGB32);
+
+  // Average of two colors
+  auto average = [](QRgb* a, QRgb* b){
+    auto red = (qRed(*a) + qRed(*b)) / 2;
+    auto green = (qGreen(*a) + qGreen(*b)) / 2;
+    auto blue = (qBlue(*a) + qBlue(*b)) / 2;
+    return qRgb(red, green, blue);
+  };
+
+  // Between columns
+  for (int row_index = 0; row_index < original_height; row_index++) {
+    int target_row = row_index * 2;
+    auto original_line = reinterpret_cast<QRgb*>(image.scanLine(row_index));
+    auto target_line = reinterpret_cast<QRgb*>(target_image.scanLine(target_row));
+
+    for (int column_index = 0; column_index < original_width; column_index++) {
+      int target_column = column_index * 2;
+
+      // First pixel is equal
+      auto* original_pixel = &original_line[column_index];
+      auto* target_pixel = &target_line[target_column];
+      *target_pixel = *original_pixel;
+
+      // Second pixel is the medium between the current and the next (if it exists)
+      target_pixel = &target_line[target_column + 1];
+
+      if (column_index + 2 < original_width) {
+        auto* next_pixel = &original_line[column_index + 2];
+        *target_pixel = average(original_pixel, next_pixel);
+      } else {
+        *target_pixel = *original_pixel;
+      }
+    }
+  }
+
+  // Between lines
+  for (int row_index = 0; row_index < target_height; row_index += 2) {
+    auto current_line = reinterpret_cast<QRgb*>(target_image.scanLine(row_index));
+    auto target_line = reinterpret_cast<QRgb*>(target_image.scanLine(row_index + 1));
+
+    if (row_index + 2 >= target_height) {
+      std::memcpy(target_line, current_line, static_cast<size_t>(target_width) * sizeof(QRgb));
+      break;
+    }
+
+    auto next_line = reinterpret_cast<QRgb*>(target_image.scanLine(row_index + 2));
+
+    for (int column_index = 0; column_index < target_width; column_index++) {
+      auto* current_pixel = &current_line[column_index];
+      auto* target_pixel = &target_line[column_index];
+      auto* next_pixel = &next_line[column_index];
+
+      *target_pixel = average(current_pixel, next_pixel);
+    }
+  }
+
+  return target_image;
+}
+
 }

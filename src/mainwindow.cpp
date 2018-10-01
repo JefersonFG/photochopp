@@ -121,6 +121,9 @@ void MainWindow::createActions()
   zoom_out_action_ = edit_menu->addAction(tr("Zoom &Out"), this, &MainWindow::zoomOut);
   zoom_out_action_->setEnabled(false);
 
+  zoom_in_action_ = edit_menu->addAction(tr("&Zoom In"), this, &MainWindow::zoomIn);
+  zoom_in_action_->setEnabled(false);
+
   QMenu *view_menu = menuBar()->addMenu(tr("&View"));
 
   fit_to_window_action_ = view_menu->addAction(tr("&Fit to Window"), this, &MainWindow::fitToWindow);
@@ -148,6 +151,7 @@ void MainWindow::updateActions()
   equalize_histogram_action_->setEnabled(!image_.isNull());
   match_histogram_action_->setEnabled(!image_.isNull() && image_.isGrayscale());
   zoom_out_action_->setEnabled(!image_.isNull());
+  zoom_in_action_->setEnabled(!image_.isNull());
 }
 
 void MainWindow::initializeImageFileDialog(QFileDialog& dialog, QFileDialog::AcceptMode accept_mode)
@@ -452,7 +456,16 @@ void MainWindow::zoomOut()
   image_ = image_op::zoomOutByFactors(image_, sx, sy);
   pixmap_right_ = QPixmap::fromImage(image_);
   fitToWindow();
-  const QString message = tr("Zoomed out image by a factor of %1 and %2").arg(sx).arg(sy);
+  const QString message = tr("Zoomed out image by a factor of %1x%2").arg(sx).arg(sy);
+  statusBar()->showMessage(message);
+}
+
+void MainWindow::zoomIn()
+{
+  image_ = image_op::zoomIn2x2(image_);
+  pixmap_right_ = QPixmap::fromImage(image_);
+  fitToWindow();
+  const QString message = tr("Zoomed in image by a factor of 2x2");
   statusBar()->showMessage(message);
 }
 
