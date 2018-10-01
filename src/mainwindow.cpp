@@ -124,6 +124,12 @@ void MainWindow::createActions()
   zoom_in_action_ = edit_menu->addAction(tr("&Zoom In"), this, &MainWindow::zoomIn);
   zoom_in_action_->setEnabled(false);
 
+  rotate_clockwise_action_ = edit_menu->addAction(tr("&Rotate Clockwise"), this, &MainWindow::rotateClockwise);
+  rotate_clockwise_action_->setEnabled(false);
+
+  rotate_counter_clockwise_action_ = edit_menu->addAction(tr("Rotate Coun&ter-Clockwise"), this, &MainWindow::rotateCounterClockwise);
+  rotate_counter_clockwise_action_->setEnabled(false);
+
   QMenu *view_menu = menuBar()->addMenu(tr("&View"));
 
   fit_to_window_action_ = view_menu->addAction(tr("&Fit to Window"), this, &MainWindow::fitToWindow);
@@ -152,6 +158,8 @@ void MainWindow::updateActions()
   match_histogram_action_->setEnabled(!image_.isNull() && image_.isGrayscale());
   zoom_out_action_->setEnabled(!image_.isNull());
   zoom_in_action_->setEnabled(!image_.isNull());
+  rotate_clockwise_action_->setEnabled(!image_.isNull());
+  rotate_counter_clockwise_action_->setEnabled(!image_.isNull());
 }
 
 void MainWindow::initializeImageFileDialog(QFileDialog& dialog, QFileDialog::AcceptMode accept_mode)
@@ -466,6 +474,24 @@ void MainWindow::zoomIn()
   pixmap_right_ = QPixmap::fromImage(image_);
   fitToWindow();
   const QString message = tr("Zoomed in image by a factor of 2x2");
+  statusBar()->showMessage(message);
+}
+
+void MainWindow::rotateClockwise()
+{
+  image_ = image_op::rotate90DegreesClockwise(image_);
+  pixmap_right_ = QPixmap::fromImage(image_);
+  fitToWindow();
+  const QString message = tr("Image rotated 90 degrees clockwise");
+  statusBar()->showMessage(message);
+}
+
+void MainWindow::rotateCounterClockwise()
+{
+  image_ = image_op::rotate90DegreesCounterClockwise(image_);
+  pixmap_right_ = QPixmap::fromImage(image_);
+  fitToWindow();
+  const QString message = tr("Image rotated 90 degrees counter-clockwise");
   statusBar()->showMessage(message);
 }
 

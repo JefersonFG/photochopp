@@ -409,4 +409,58 @@ QImage zoomIn2x2(QImage image)
   return target_image;
 }
 
+QImage rotate90DegreesClockwise(QImage image)
+{
+  int width = image.width();
+  int height = image.height();
+
+  // Target image has inverted dimensions
+  QImage target_image(height, width, QImage::Format_RGB32);
+
+  std::vector<QRgb*> original_image_lines;
+  std::vector<QRgb*> target_image_lines;
+
+  for (int i = 0; i < height; i++)
+    original_image_lines.emplace_back(reinterpret_cast<QRgb*>(image.scanLine(i)));
+
+  for (int i = 0; i < width; i++)
+    target_image_lines.emplace_back(reinterpret_cast<QRgb*>(target_image.scanLine(i)));
+
+  for (int row_index = 0; row_index < height; row_index++) {
+    for (int column_index = 0; column_index < width; column_index++) {
+      target_image_lines[static_cast<size_t>(column_index)][height - row_index - 1] =
+          original_image_lines[static_cast<size_t>(row_index)][static_cast<size_t>(column_index)];
+    }
+  }
+
+  return target_image;
+}
+
+QImage rotate90DegreesCounterClockwise(QImage image)
+{
+  int width = image.width();
+  int height = image.height();
+
+  // Target image has inverted dimensions
+  QImage target_image(height, width, QImage::Format_RGB32);
+
+  std::vector<QRgb*> original_image_lines;
+  std::vector<QRgb*> target_image_lines;
+
+  for (int i = 0; i < height; i++)
+    original_image_lines.emplace_back(reinterpret_cast<QRgb*>(image.scanLine(i)));
+
+  for (int i = 0; i < width; i++)
+    target_image_lines.emplace_back(reinterpret_cast<QRgb*>(target_image.scanLine(i)));
+
+  for (int row_index = 0; row_index < height; row_index++) {
+    for (int column_index = 0; column_index < width; column_index++) {
+      target_image_lines[static_cast<size_t>(width - column_index - 1)][static_cast<size_t>(row_index)] =
+          original_image_lines[static_cast<size_t>(row_index)][static_cast<size_t>(column_index)];
+    }
+  }
+
+  return target_image;
+}
+
 }

@@ -88,4 +88,14 @@ QImage zoomOutByFactors(QImage image, int sx, int sy);
  */
 QImage zoomIn2x2(QImage image);
 
+/**
+ * Rotates image 90 degrees clockwise
+ */
+QImage rotate90DegreesClockwise(QImage image);
+
+/**
+ * Rotates image 90 degrees counter-clockwise
+ */
+QImage rotate90DegreesCounterClockwise(QImage image);
+
 } // namespace image_op

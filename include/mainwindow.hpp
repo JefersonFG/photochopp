@@ -138,6 +138,16 @@ private:
   void zoomIn();
 
   /**
+   * Rotates image by 90 degrees in clockwise orientation
+   */
+  void rotateClockwise();
+
+  /**
+   * Rotates image by 90 degrees in counter-clockwise orientation
+   */
+  void rotateCounterClockwise();
+
+  /**
    * Window resize event, updates image size
    */
   void resizeEvent(QResizeEvent* event);
@@ -173,5 +183,7 @@ private:
   QAction* match_histogram_action_;
   QAction* zoom_out_action_;
   QAction* zoom_in_action_;
+  QAction* rotate_clockwise_action_;
+  QAction* rotate_counter_clockwise_action_;
   QAction* fit_to_window_action_;
 };
