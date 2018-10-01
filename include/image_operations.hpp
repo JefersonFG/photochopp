@@ -76,4 +76,10 @@ QImage equalizeHistogram(QImage image);
  */
 QImage matchGrayscaleHistogram(QImage original_image, QImage target_image);
 
+/**
+ * Zooms out the image using the factor sx and sy creating rectangles of these
+ * dimensions and taking the medium of the pixels on each rectangle
+ */
+QImage zoomOutByFactors(QImage image, int sx, int sy);
+
 } // namespace image_op

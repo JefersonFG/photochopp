@@ -292,4 +292,53 @@ QImage matchGrayscaleHistogram(QImage original_image, QImage target_image)
   return original_image;
 }
 
+QImage zoomOutByFactors(QImage image, int sx, int sy)
+{
+  int original_width = image.width();
+  int original_height = image.height();
+
+  int target_width = static_cast<int>(ceil(original_width * 1.0 / sx));
+  int target_height = static_cast<int>(ceil(original_height * 1.0 / sy));
+
+  QImage target_image(target_width, target_height, QImage::Format_RGB32);
+
+  QVector<QRgb*> lines(sy);
+
+  for (int row_index = 0, target_row = 0; row_index < original_height; row_index += sy, target_row++) {
+    int rows_read = 0;
+
+    for (int row = row_index, i = 0; row < row_index + sy && row < original_height; row++, i++) {
+      lines[i] = reinterpret_cast<QRgb*>(image.scanLine(row));
+      rows_read++;
+    }
+
+    auto target_line = reinterpret_cast<QRgb*>(target_image.scanLine(target_row));
+
+    for (int column_index = 0, target_column = 0; column_index < original_width; column_index += sx, target_column++) {
+      int red = 0;
+      int green = 0;
+      int blue = 0;
+      int num_pixels = 0;
+
+      for (int column = column_index; column < column_index + sx && column < original_width; column++) {
+        for (int row = 0; row < rows_read; row++) {
+          num_pixels++;
+          red += qRed(lines[row][column]);
+          green += qGreen(lines[row][column]);
+          blue += qBlue(lines[row][column]);
+        }
+      }
+
+      red /= num_pixels;
+      green /= num_pixels;
+      blue /= num_pixels;
+
+      auto* pixel = &target_line[target_column];
+      *pixel = qRgb(red, green, blue);
+    }
+  }
+
+  return target_image;
+}
+
 }

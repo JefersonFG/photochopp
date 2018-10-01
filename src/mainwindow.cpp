@@ -118,6 +118,9 @@ void MainWindow::createActions()
   match_histogram_action_ = edit_menu->addAction(tr("&Match Histogram"), this, &MainWindow::matchHistogram);
   match_histogram_action_->setEnabled(false);
 
+  zoom_out_action_ = edit_menu->addAction(tr("Zoom &Out"), this, &MainWindow::zoomOut);
+  zoom_out_action_->setEnabled(false);
+
   QMenu *view_menu = menuBar()->addMenu(tr("&View"));
 
   fit_to_window_action_ = view_menu->addAction(tr("&Fit to Window"), this, &MainWindow::fitToWindow);
@@ -144,6 +147,7 @@ void MainWindow::updateActions()
   get_negative_action_->setEnabled(!image_.isNull());
   equalize_histogram_action_->setEnabled(!image_.isNull());
   match_histogram_action_->setEnabled(!image_.isNull() && image_.isGrayscale());
+  zoom_out_action_->setEnabled(!image_.isNull());
 }
 
 void MainWindow::initializeImageFileDialog(QFileDialog& dialog, QFileDialog::AcceptMode accept_mode)
@@ -412,9 +416,6 @@ bool MainWindow::loadGrayscaleImage(const QString& file_name, QImage& image)
 
 void MainWindow::matchHistogram()
 {
-  // Update left image to show image before matching
-  pixmap_left_ = QPixmap::fromImage(image_);
-
   QFileDialog dialog(this, tr("Open File"));
   initializeImageFileDialog(dialog, QFileDialog::AcceptOpen);
 
@@ -431,6 +432,28 @@ void MainWindow::matchHistogram()
   fitToWindow();
 
   statusBar()->showMessage("Matched image histogram");
+}
+
+void MainWindow::zoomOut()
+{
+  bool ok;
+  int sx = QInputDialog::getInt(this, tr("Zoom out"),
+                                      tr("Factor on x axis:"), 1, 1, image_.width(), 1, &ok,
+                                      Qt::MSWindowsFixedSizeDialogHint);
+  if (!ok)
+    return;
+
+  int sy = QInputDialog::getInt(this, tr("Zoom out"),
+                                      tr("Factor on y axis:"), 1, 1, image_.height(), 1, &ok,
+                                      Qt::MSWindowsFixedSizeDialogHint);
+  if (!ok)
+    return;
+
+  image_ = image_op::zoomOutByFactors(image_, sx, sy);
+  pixmap_right_ = QPixmap::fromImage(image_);
+  fitToWindow();
+  const QString message = tr("Zoomed out image by a factor of %1 and %2").arg(sx).arg(sy);
+  statusBar()->showMessage(message);
 }
 
 void MainWindow::fitToWindow()

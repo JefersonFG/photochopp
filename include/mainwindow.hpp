@@ -128,6 +128,11 @@ private:
   void matchHistogram();
 
   /**
+   * Applies zoom out to the image with parameters input by the user
+   */
+  void zoomOut();
+
+  /**
    * Window resize event, updates image size
    */
   void resizeEvent(QResizeEvent* event);
@@ -161,5 +166,6 @@ private:
   QAction* get_negative_action_;
   QAction* equalize_histogram_action_;
   QAction* match_histogram_action_;
+  QAction* zoom_out_action_;
   QAction* fit_to_window_action_;
 };
