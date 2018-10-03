@@ -463,4 +463,46 @@ QImage rotate90DegreesCounterClockwise(QImage image)
   return target_image;
 }
 
+QImage applyConvolutionWith3x3Kernel(QImage image, QVector<QVector<double>> kernel, bool add_bias)
+{
+  int width = image.width();
+  int height = image.height();
+
+  QImage target_image(width, height, QImage::Format_RGB32);
+  target_image.fill(Qt::black);
+
+  double sum;
+  QVector<QRgb*> original_image_lines;
+  QVector<QRgb*> target_image_lines;
+
+  for (int i = 0; i < height; i++) {
+    original_image_lines.append(reinterpret_cast<QRgb*>(image.scanLine(i)));
+    target_image_lines.append(reinterpret_cast<QRgb*>(target_image.scanLine(i)));
+  }
+
+  for (int row = 1; row <= height - 2; row++) {
+    for (int column = 1; column <= width - 2; column++) {
+      sum = 0.0;
+
+      for (int k = -1; k <= 1; k++) {
+        for (int j = -1; j <= 1; j++) {
+          // Since it is a grayscale image each channel has the same value
+          sum += kernel[1+j][1+k] * qRed(original_image_lines[row-j][column-k]);
+        }
+      }
+
+      if (add_bias)
+        sum += 127;
+
+      sum = sum > 255 ? 255 : sum < 0 ? 0 : sum;
+      auto color = static_cast<int>(sum);
+
+      auto& pixel = target_image_lines[row][column];
+      pixel = qRgb(color, color, color);
+    }
+  }
+
+  return target_image;
+}
+
 }

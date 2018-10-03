@@ -130,6 +130,9 @@ void MainWindow::createActions()
   rotate_counter_clockwise_action_ = edit_menu->addAction(tr("Rotate Coun&ter-Clockwise"), this, &MainWindow::rotateCounterClockwise);
   rotate_counter_clockwise_action_->setEnabled(false);
 
+  apply_convolution_action_ = edit_menu->addAction(tr("Apply Convol&ution"), this, &MainWindow::applyConvolution);
+  apply_convolution_action_->setEnabled(false);
+
   QMenu *view_menu = menuBar()->addMenu(tr("&View"));
 
   fit_to_window_action_ = view_menu->addAction(tr("&Fit to Window"), this, &MainWindow::fitToWindow);
@@ -160,6 +163,7 @@ void MainWindow::updateActions()
   zoom_in_action_->setEnabled(!image_.isNull());
   rotate_clockwise_action_->setEnabled(!image_.isNull());
   rotate_counter_clockwise_action_->setEnabled(!image_.isNull());
+  apply_convolution_action_->setEnabled(!image_.isNull() && image_.isGrayscale());
 }
 
 void MainWindow::initializeImageFileDialog(QFileDialog& dialog, QFileDialog::AcceptMode accept_mode)
@@ -493,6 +497,60 @@ void MainWindow::rotateCounterClockwise()
   fitToWindow();
   const QString message = tr("Image rotated 90 degrees counter-clockwise");
   statusBar()->showMessage(message);
+}
+
+void MainWindow::applyConvolution()
+{
+  // Get kernel
+  bool ok;
+  QString kernel_string = QInputDialog::getMultiLineText(this, tr("Apply convolution"),
+                                                         tr("Input 3x3 kernel with values separated by spaces"), QString(), &ok,
+                                                         Qt::MSWindowsFixedSizeDialogHint);
+  if (!ok)
+    return;
+
+  // Confirms the kernel with the user
+  QMessageBox kernel_confirmation;
+  kernel_confirmation.setText("Apply this kernel?\n\n" + kernel_string.trimmed());
+  kernel_confirmation.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+  kernel_confirmation.setDefaultButton(QMessageBox::Ok);
+
+  if (kernel_confirmation.exec() == QMessageBox::Cancel)
+    return;
+
+  // Asks for bias addition
+  QMessageBox bias_confirmation;
+  bias_confirmation.setText("Add +127 bias during operation?");
+  bias_confirmation.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+  bias_confirmation.setDefaultButton(QMessageBox::No);
+
+  bool add_bias = bias_confirmation.exec() == QMessageBox::Yes;
+
+  // Gets the numbers ignoring whitespace characters
+  QStringList kernel_elements = kernel_string.split(QRegExp("\\s+"), QString::SkipEmptyParts);
+
+  // Checks that it is a 3x3 matrix (any 9 numbers will be treated as such)
+  if (kernel_elements.size() != 9) {
+    QMessageBox::information(this, QGuiApplication::applicationDisplayName(),
+                             tr("Kernel must be 3x3"));
+    return;
+  }
+
+  // Creates and populates kernel
+  QVector<QVector<double>> kernel;
+
+  for (int i = 0; i < 3; i++) {
+    kernel.append(QVector<double>(3));
+    for (int j = 0; j < 3; j++) {
+      kernel[i][j] = kernel_elements[i*3 + j].simplified().toDouble();
+    }
+  }
+
+  image_ = image_op::applyConvolutionWith3x3Kernel(image_, kernel, add_bias);
+  pixmap_right_ = QPixmap::fromImage(image_);
+  fitToWindow();
+  updateActions();
+  statusBar()->showMessage("Convoluted the image with the provided kernel");
 }
 
 void MainWindow::fitToWindow()

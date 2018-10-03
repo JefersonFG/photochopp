@@ -98,4 +98,11 @@ QImage rotate90DegreesClockwise(QImage image);
  */
 QImage rotate90DegreesCounterClockwise(QImage image);
 
+/**
+ * Applies convolution to the image using the provided kernel,
+ * assuming image is grayscale and kernel is 3x3
+ * Can add a 127 bias during processing
+ */
+QImage applyConvolutionWith3x3Kernel(QImage image, QVector<QVector<double>> kernel, bool add_bias);
+
 } // namespace image_op

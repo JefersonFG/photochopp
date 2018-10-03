@@ -148,6 +148,11 @@ private:
   void rotateCounterClockwise();
 
   /**
+   * Applies convolution to the image using a kernel input by the user
+   */
+  void applyConvolution();
+
+  /**
    * Window resize event, updates image size
    */
   void resizeEvent(QResizeEvent* event);
@@ -185,5 +190,6 @@ private:
   QAction* zoom_in_action_;
   QAction* rotate_clockwise_action_;
   QAction* rotate_counter_clockwise_action_;
+  QAction* apply_convolution_action_;
   QAction* fit_to_window_action_;
 };
